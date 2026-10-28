@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from app.code_search import CodeSearch
+from app.agent import ask_repo
 
 
 app = FastAPI(
@@ -37,6 +38,9 @@ class ReadRequest(BaseModel):
     path: str = Field(min_length=1, max_length=500)
     start_line: int = Field(default=1, ge=1)
     end_line: int = Field(default=100, ge=1, le=10000)
+
+class AgentRequest(BaseModel):
+    question: str = Field(min_length=3, max_length=1000)
 
 
 @app.get("/")
@@ -102,3 +106,18 @@ def read_file(request: ReadRequest):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="File not found") from exc
+
+@app.post("/ask")
+def ask(request: AgentRequest):
+    try:
+        return ask_repo(request.question)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Agent request failed: {type(exc).__name__}: {exc}",
+        ) from exc
