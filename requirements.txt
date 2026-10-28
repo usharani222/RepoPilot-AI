@@ -1,0 +1,6 @@
+langchain
+langgraph
+fastapi
+uvicorn[standard]
+pytest
+httpx
