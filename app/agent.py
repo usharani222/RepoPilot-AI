@@ -114,17 +114,26 @@ def ask_repo(question: str, max_steps: int = 5) -> dict:
                     raise ValueError("Unknown tool requested")
 
                 result = TOOL_MAP[name].invoke(args)
+                result_text = str(result)
+
+                trace[-1]["status"] = "success"
+                trace[-1]["result_preview"] = result_text[:1000]
+                trace[-1]["result_truncated"] = len(result_text) > 1000
+
             except Exception as exc:
-                # Return a tool error to the model rather than crashing
-                # the entire agent loop.
-                result = f"Tool error: {type(exc).__name__}: {exc}"
+                result_text = f"Tool error: {type(exc).__name__}: {exc}"
+
+                trace[-1]["status"] = "error"
+                trace[-1]["error"] = result_text
 
             messages.append(
                 ToolMessage(
-                    content=str(result),
+                    content=result_text,
                     tool_call_id=call["id"],
                 )
             )
+
+            
 
     return {
         "answer": (
